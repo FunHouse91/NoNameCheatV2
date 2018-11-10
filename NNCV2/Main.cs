@@ -395,8 +395,8 @@ namespace Nncv2
                             Utility.DrawLine(new Vector2(playerHeadVector.x - 2f, (float)Screen.height - playerHeadVector.y), new Vector2(playerHeadVector.x + 2f, (float)Screen.height - playerHeadVector.y), Color.red);
                             Utility.DrawLine(new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y - 2f), new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y + 2f), Color.red);
                             var playerName = isAi ? "AI" : player.Profile.Info.Nickname;
-                            float playerHealth = player.HealthController.SummaryHealth.CurrentValue / 435f * 100f;
-                            string playerDisplayName = player.Profile.Health.IsAlive ? playerName : playerName + " (Dead)";
+                            float playerHealth = player.HealthController.HealthRate / 435f * 100f;
+                            string playerDisplayName = player.HealthController.IsAlive ? playerName : playerName + " (Dead)";
                             string playerText = $"[{(int)playerHealth}%] {playerDisplayName} [{(int)distanceToObject}m]";
                             var playerTextVector = GUI.skin.GetStyle(playerText).CalcSize(new GUIContent(playerText));
                             GUI.color = playerColor;
