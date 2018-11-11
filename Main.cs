@@ -18,7 +18,7 @@ namespace Nncv2
 
         private float _playNextUpdateTime;
         private float _extNextUpdateTime;
-        protected float _infoUpdateInterval = 50f;
+        protected float _infoUpdateInterval = 10f;
 
 
         private bool _isInfoMenuActive;
@@ -37,9 +37,6 @@ namespace Nncv2
         private float _itemsNextUpdateTime;
         private float _espUpdateInterval = 500f;
         private float _viewdistance = 1200f;
-
-
-
 
 
         [DllImport("user32.dll")]
