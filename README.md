@@ -1,5 +1,6 @@
 # Update logs
 
+* 12/11/2018: Code clear + new fix
 * 11/11/2018: ESP Health fix + not every player check
 * 10/11/2018: ESP Fix (by Chokx)
 
