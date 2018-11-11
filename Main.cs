@@ -18,7 +18,7 @@ namespace Nncv2
 
         private float _playNextUpdateTime;
         private float _extNextUpdateTime;
-        protected float _infoUpdateInterval = 10f; 
+        protected float _infoUpdateInterval = 50f;
 
 
         private bool _isInfoMenuActive;
@@ -27,7 +27,7 @@ namespace Nncv2
         private bool _showItems;
         private bool _showContainers;
 
-        private double _lowDist = 350.00; // Default distance to midscreen
+        private double _lowDist = 250.00; // Default distance to midscreen
         private int _AimSpeed = 1; // Default speed = high speed for aimbot (higher value = smoother)
         private bool _smooth = true;
         private bool _aim;
@@ -35,9 +35,9 @@ namespace Nncv2
         private float _lootItemDistance = 50f;
         private float _weaponBoxesNextUpdateTime;
         private float _itemsNextUpdateTime;
-        private float _espUpdateInterval = 100f;
+        private float _espUpdateInterval = 500f;
         private float _viewdistance = 1200f;
-        
+
 
 
 
@@ -83,10 +83,10 @@ namespace Nncv2
                 _isInfoMenuActive = !_isInfoMenuActive;
             }
             if (Input.GetKeyDown(KeyCode.Mouse3)) // You can change it or create a GUI for change it in game
-                {
+            {
                 _aim = !_aim;
-                }
-            
+            }
+
         }
 
         private void OnGUI()
@@ -95,12 +95,14 @@ namespace Nncv2
             {
                 GUIOverlay();
             }
-            if (_pInfor && Time.time >= _playNextUpdateTime || _aim && Time.time >= _playNextUpdateTime)
+
+            if ((_pInfor && Time.time >= _playNextUpdateTime) || (_aim && Time.time >= _playNextUpdateTime))
             {
                 _playerInfo = FindObjectsOfType<Player>();
                 _playNextUpdateTime = Time.time + _infoUpdateInterval;
             }
-            if(_aim)
+
+            if (_aim)
                 Aimbot();
 
             if (_pInfor)
@@ -111,34 +113,33 @@ namespace Nncv2
 
             if (_showExtractInfo && Time.time >= _extNextUpdateTime)
             {
-                _extract = FindObjectsOfType<ExfiltrationPoint>();
-                _extNextUpdateTime = Time.time + _infoUpdateInterval;
-            }
-
-            if (_showExtractInfo)
-            {
+                if (Time.time >= _extNextUpdateTime)
+                {
+                    _extract = FindObjectsOfType<ExfiltrationPoint>();
+                    _extNextUpdateTime = Time.time + _infoUpdateInterval;
+                }
                 DrawExtractInfo();
             }
 
-            if (this._showContainers)
+            if (_showContainers)
             {
-                if (Time.time >= this._weaponBoxesNextUpdateTime)
+                if (Time.time >= _weaponBoxesNextUpdateTime)
                 {
-                    this._containers = UnityEngine.Object.FindObjectsOfType<LootableContainer>();
-                    this._weaponBoxesNextUpdateTime = Time.time + this._espUpdateInterval;
+                    _containers = UnityEngine.Object.FindObjectsOfType<LootableContainer>();
+                    _weaponBoxesNextUpdateTime = Time.time + _espUpdateInterval;
                 }
-                this.DrawWeaponBoxesContainers();
+                DrawWeaponBoxesContainers();
             }
 
 
-            if (this._showItems)
+            if (_showItems)
             {
-                if (Time.time >= this._itemsNextUpdateTime)
+                if (Time.time >= _itemsNextUpdateTime)
                 {
-                    this._item = UnityEngine.Object.FindObjectsOfType<LootItem>();
-                    this._itemsNextUpdateTime = Time.time + this._espUpdateInterval;
+                    _item = FindObjectsOfType<LootItem>();
+                    _itemsNextUpdateTime = Time.time + _espUpdateInterval;
                 }
-                this.ShowItemESP();
+                ShowItemESP();
             }
         }
 
@@ -147,7 +148,6 @@ namespace Nncv2
         {
             int aimPosX = 0;
             int aimPosY = 0;
-            bool isvisible = false;
             foreach (var player in _playerInfo)
             {
                 float distanceToObject = Vector3.Distance(Camera.main.transform.position, player.Transform.position);
@@ -159,8 +159,7 @@ namespace Nncv2
                         var playerHeadVector = new Vector2(
                             Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).x,
                             Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y);
-                        isvisible = player.IsVisible;
-                        double distance = GetDistance(Screen.width/2, Screen.height/2, playerHeadVector.x, playerHeadVector.y);
+                        double distance = GetDistance(Screen.width / 2, Screen.height / 2, playerHeadVector.x, playerHeadVector.y);
                         if (distance < _lowDist)
                         {
                             aimPosX = (int)playerHeadVector.x;
@@ -243,25 +242,25 @@ namespace Nncv2
 
         private void DrawExtractInfo()
         {
-                foreach (var point in _extract)
+            foreach (var point in _extract)
+            {
+                if (point.isActiveAndEnabled)
                 {
-                    if (point.isActiveAndEnabled)
+                    float distanceToObject = Vector3.Distance(Camera.main.transform.position, point.transform.position);
+                    var exfilContainerBoundingVector = new Vector3(
+                        Camera.main.WorldToScreenPoint(point.transform.position).x,
+                        Camera.main.WorldToScreenPoint(point.transform.position).y,
+                        Camera.main.WorldToScreenPoint(point.transform.position).z);
+                    if (exfilContainerBoundingVector.z > 0.01)
                     {
-                        float distanceToObject = Vector3.Distance(Camera.main.transform.position, point.transform.position);
-                        var exfilContainerBoundingVector = new Vector3(
-                            Camera.main.WorldToScreenPoint(point.transform.position).x,
-                            Camera.main.WorldToScreenPoint(point.transform.position).y,
-                            Camera.main.WorldToScreenPoint(point.transform.position).z);
-                        if (exfilContainerBoundingVector.z > 0.01)
-                        {
-                            GUI.color = Color.green;
-                            int distance = (int)distanceToObject;
-                            String exfilName = point.name;
-                            string boxText = $"{exfilName} - {distance}m";
-                            GUI.Label(new Rect(exfilContainerBoundingVector.x - 50f, (float)Screen.height - exfilContainerBoundingVector.y, 100f, 50f), boxText);
-                        }
+                        GUI.color = Color.green;
+                        int distance = (int)distanceToObject;
+                        String exfilName = point.name;
+                        string boxText = $"{exfilName} - {distance}m";
+                        GUI.Label(new Rect(exfilContainerBoundingVector.x - 50f, (float)Screen.height - exfilContainerBoundingVector.y, 100f, 50f), boxText);
                     }
                 }
+            }
         }
 
         private void DrawWeaponBoxesContainers()
@@ -297,7 +296,7 @@ namespace Nncv2
                 Vector3 ItemBoundingVector = new Vector3(Camera.main.WorldToScreenPoint(Item.transform.position).x, Camera.main.WorldToScreenPoint(Item.transform.position).y, Camera.main.WorldToScreenPoint(Item.transform.position).z);
                 if (ItemBoundingVector.z > 0.01 && Item != null && (Item.name.Contains("key") || Item.name.Contains("usb") || Item.name.Contains("alkali") || Item.name.Contains("ophalmo") || Item.name.Contains("gunpowder") || Item.name.Contains("phone") || Item.name.Contains("gas") || Item.name.Contains("money") || Item.name.Contains("document") || Item.name.Contains("quest") || Item.name.Contains("spark") || Item.name.Contains("grizzly") || Item.name.Contains("sv-98") || Item.name.Contains("sv98") || Item.name.Contains("rsas") || Item.name.Contains("salewa") || Item.name.Equals("bitcoin") || Item.name.Contains("dvl") || Item.name.Contains("m4a1") || Item.name.Contains("roler") || Item.name.Contains("chain") || Item.name.Contains("wallet") || Item.name.Contains("RSASS") || Item.name.Contains("glock") || Item.name.Contains("SA-58")) && distance <= _lootItemDistance)
                 {
-                        name = Item.name;
+                    name = Item.name;
 
                     string text = string.Format($"{Item.name} - [{distance}]m");
                     GUI.color = Color.magenta;
@@ -307,99 +306,46 @@ namespace Nncv2
         }
 
 
+
         private void DrawPlayers()
         {
-                
-                foreach (var player in _playerInfo)
+            foreach (var player in _playerInfo)
+            {
+                if (player != null || player.IsVisible == true || player.PointOfView != EPointOfView.FirstPerson)
                 {
-                if (player == null)
-                {
-                    continue;
-                }
-                if (player.PointOfView == EPointOfView.FirstPerson) // It's for the local player
-                {
-                    continue;
-                }
+                    float distanceToObject = Vector3.Distance(Camera.main.transform.position, player.Transform.position);
+                    var playerBoundingVector = new Vector3(
+                    Camera.main.WorldToScreenPoint(player.Transform.position).x,
+                    Camera.main.WorldToScreenPoint(player.Transform.position).y,
+                    Camera.main.WorldToScreenPoint(player.Transform.position).z);
+                    if (distanceToObject <= _viewdistance && playerBoundingVector.z > 0.0001)
+                    {
 
-                            float distanceToObject = Vector3.Distance(Camera.main.transform.position, player.Transform.position);
-                            var playerBoundingVector = new Vector3(
-                            Camera.main.WorldToScreenPoint(player.Transform.position).x,
-                            Camera.main.WorldToScreenPoint(player.Transform.position).y,
-                            Camera.main.WorldToScreenPoint(player.Transform.position).z);
-                        
-                            if (distanceToObject <= _viewdistance && playerBoundingVector.z > 0.01)
-                            {
-                    
-                                    var playerHeadVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).z);
-                        // Disable but work fine, just a leg can't be found
-                        /*
-                                var playerRightPalmVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightPalm.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightPalm.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightPalm.position).z);
-                                var playerLeftPalmVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftPalm.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftPalm.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftPalm.position).z);
-                                var playerLeftShoulderVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftShoulder.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftShoulder.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftShoulder.position).z);
-                                var playerRightShoulderVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightShoulder.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightShoulder.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightShoulder.position).z);
-                                var playerNeckVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Neck.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Neck.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Neck.position).z);
-                                var playerCenterVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Ribcage.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Ribcage.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.Ribcage.position).z);
-                                var playerRightThighVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightThigh2.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightThigh2.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.RightThigh2.position).z);
-                                var playerLeftThighVector = new Vector3(
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftThigh2.position).x,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftThigh2.position).y,
-                                    Camera.main.WorldToScreenPoint(player.PlayerBones.LeftThigh2.position).z);
-                                var playerFootVector = new Vector3(
-                                Camera.main.WorldToScreenPoint(player.PlayerBones.KickingFoot.position).x,
-                                Camera.main.WorldToScreenPoint(player.PlayerBones.KickingFoot.position).y,
-                                Camera.main.WorldToScreenPoint(player.PlayerBones.KickingFoot.position).z);
-                        //Utility.DrawLine(new Vector2(playerNeckVector.x, (float)Screen.height - playerNeckVector.y), new Vector2(playerCenterVector.x, (float)Screen.height - playerCenterVector.y), Color.yellow);
-                        Utility.DrawLine(new Vector2(playerLeftShoulderVector.x, (float)Screen.height - playerLeftShoulderVector.y), new Vector2(playerLeftPalmVector.x, (float)Screen.height - playerLeftPalmVector.y), Color.yellow);
-                        Utility.DrawLine(new Vector2(playerRightShoulderVector.x, (float)Screen.height - playerRightShoulderVector.y), new Vector2(playerRightPalmVector.x, (float)Screen.height - playerRightPalmVector.y), Color.yellow);
-                        //Utility.DrawLine(new Vector2(playerLeftThighVector.x, (float)Screen.height - playerLeftThighVector.y), new Vector2(playerCenterVector.x, (float)Screen.height - playerCenterVector.y), Color.yellow);
-                        //Utility.DrawLine(new Vector2(playerRightThighVector.x, (float)Screen.height - playerRightThighVector.y), new Vector2(playerCenterVector.x, (float)Screen.height - playerCenterVector.y), Color.yellow);
-                        Utility.DrawLine(new Vector2(playerRightThighVector.x, (float)Screen.height - playerRightThighVector.y), new Vector2(playerFootVector.x, (float)Screen.height - playerFootVector.y), Color.yellow);
-                        */
-                            float boxXOffset = Camera.main.WorldToScreenPoint(player.Transform.position).x;
-                    
-                                float boxYOffset = Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y + 10f;
-                                float boxHeight = Math.Abs(Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y - Camera.main.WorldToScreenPoint(player.Transform.position).y) + 10f;
-                                float boxWidth = boxHeight * 0.65f;
-                                var playerColor = player.HealthController.IsAlive ? GetPlayerColor(player.Side) : Color.gray;
-                                var isAi = player.Profile.Info.RegistrationDate <= 0;
-                                Utility.DrawBox(boxXOffset - boxWidth / 2f, (float)Screen.height - boxYOffset, boxWidth, boxHeight, playerColor);
-                                Utility.DrawLine(new Vector2(playerHeadVector.x - 2f, (float)Screen.height - playerHeadVector.y), new Vector2(playerHeadVector.x + 2f, (float)Screen.height - playerHeadVector.y), Color.red);
-                                Utility.DrawLine(new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y - 2f), new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y + 2f), Color.red);
-                                var playerName = isAi ? "AI" : player.Profile.Info.Nickname;
-                                float playerHealth = player.HealthController.SummaryHealth.CurrentValue / player.HealthController.SummaryHealth.MaxValue*100; // Thanks to TheMaoci
-                                string playerDisplayName = player.HealthController.IsAlive ? playerName : playerName + " (Dead)";
-                                string playerText = $"[{(int)playerHealth}%] {playerDisplayName} [{(int)distanceToObject}m]";
-                                var playerTextVector = GUI.skin.GetStyle(playerText).CalcSize(new GUIContent(playerText));
-                                GUI.color = playerColor;
-                                GUI.Label(new Rect(playerBoundingVector.x - playerTextVector.x / 2f, (float)Screen.height - boxYOffset - 20f, 300f, 50f), playerText);
-                                GUI.color = Color.white;
+                        var playerHeadVector = new Vector3(
+                        Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).x,
+                        Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y,
+                        Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).z);
+                        float boxXOffset = Camera.main.WorldToScreenPoint(player.Transform.position).x;
+                        float boxYOffset = Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y + 10f;
+                        float boxHeight = Math.Abs(Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y - Camera.main.WorldToScreenPoint(player.Transform.position).y) + 10f;
+                        float boxWidth = boxHeight * 0.65f;
+                        var playerColor = player.HealthController.IsAlive ? GetPlayerColor(player.Side) : Color.gray;
+                        var playerName = player.IsAI ? "AI" : player.Profile.Info.Nickname;
+                        float playerHealth = player.HealthController.SummaryHealth.CurrentValue / player.HealthController.SummaryHealth.MaxValue * 100; // Thanks to TheMaoci
+                        string playerText = player.HealthController.IsAlive ? $"{playerName} [{(int)distanceToObject}m] (DEAD)" : $"[{playerHealth}] {playerName} [{(int)distanceToObject}]";
+                        var playerTextVector = GUI.skin.GetStyle(playerText).CalcSize(new GUIContent(playerText));
+                        Utility.DrawBox(boxXOffset - boxWidth / 2f, (float)Screen.height - boxYOffset, boxWidth, boxHeight, playerColor);
+                        Utility.DrawLine(new Vector2(playerHeadVector.x - 2f, (float)Screen.height - playerHeadVector.y), new Vector2(playerHeadVector.x + 2f, (float)Screen.height - playerHeadVector.y), Color.red);
+                        Utility.DrawLine(new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y - 2f), new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y + 2f), Color.red);
+                        GUI.color = playerColor;
+                        GUI.Label(new Rect(playerBoundingVector.x - playerTextVector.x / 2f, (float)Screen.height - boxYOffset - 20f, 300f, 50f), playerText);
                     }
                 }
+            }
+
         }
+
+
         private Color GetPlayerColor(EPlayerSide side)
         {
             switch (side)
@@ -434,21 +380,21 @@ namespace Nncv2
             _pInfor = GUI.Toggle(new Rect(110f, 140f, 120f, 20f), _pInfor, "Players ESP"); // Display player
             _showExtractInfo = GUI.Toggle(new Rect(110f, 160f, 120f, 20f), _showExtractInfo, "Extract"); //Display  extraction
             _aim = GUI.Toggle(new Rect(110f, 180f, 120f, 20f), _aim, "Aimbot"); //Display  aimbot
-            if(_aim)
+            if (_aim)
             {
                 GUI.Label(new Rect(110f, 200f, 150f, 20f), "AIM Center distance");
                 _lowDist = (GUI.HorizontalSlider(new Rect(220f, 200f, 120f, 20f), (float)_lowDist, 20.0F, 1000.0F)); //Player distance on the mid screen to aim
             }
             _smooth = GUI.Toggle(new Rect(110f, 220f, 120f, 20f), _smooth, "Smooth aim");
-            if(_smooth)
+            if (_smooth)
             {
                 GUI.Label(new Rect(110f, 240f, 150f, 20f), "Speed smoothing");
                 _AimSpeed = (int)(GUI.HorizontalSlider(new Rect(220f, 240f, 120f, 20f), _AimSpeed, 1.0F, 100.0F)); //Display  aimspeed (more great value = smoother aim)
-                
+
             }
             _viewdistance = GUI.HorizontalSlider(new Rect(150f, 260f, 120f, 20f), _viewdistance, 0.0F, 1500.0F); // Distance of players ESP
             _showItems = GUI.Toggle(new Rect(110f, 280f, 120f, 20f), _showItems, "Show Items"); //Show items on map
-            if(_showItems)
+            if (_showItems)
             {
                 GUI.Label(new Rect(110f, 320f, 150f, 20f), "Items Distance");
                 _lootItemDistance = GUI.HorizontalSlider(new Rect(210f, 320f, 120f, 20f), _lootItemDistance, 0.0F, 1500.0F);
@@ -474,7 +420,7 @@ namespace Nncv2
             float boxYOffset = Y;
             float boxHeight = radius;
             float boxwidth = radius;
-            Utility.DrawBox(boxXOffset - (radius/2), boxYOffset-(radius/2), radius, radius, Color.yellow);
+            Utility.DrawBox(boxXOffset - (radius / 2), boxYOffset - (radius / 2), radius, radius, Color.yellow);
             Utility.DrawLine(new Vector2(960, 1080), new Vector2(960, 0), Color.white);
             Utility.DrawLine(new Vector2(0, 540), new Vector2(1920, 540), Color.white);
         }
