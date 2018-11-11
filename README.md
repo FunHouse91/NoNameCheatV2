@@ -18,7 +18,7 @@ I use MInject library with my custom injector
 
 
 # Binaries required for compilation
-For compile it, you need to drag and drop these Dll in your EFT Folder/EFT_Data/Managed:
+For compile it, you need to drag and drop these Dll of your EFT Folder/EFT_Data/Managed:
 * Assembly-Csharp.dll
 * UnityEngine.dll
 * UnityEngine.Networking.dll
