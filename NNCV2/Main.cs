@@ -320,8 +320,7 @@ namespace Nncv2
                         cam.WorldToScreenPoint(player.PlayerBones.Head.position).x,
                         cam.WorldToScreenPoint(player.PlayerBones.Head.position).y,
                         cam.WorldToScreenPoint(player.PlayerBones.Head.position).z);
-                        Vector3 playerPos = player.Transform.position;
-                        Vector2 boxVector = cam.WorldToScreenPoint(playerPos + new Vector3(0f, 1.7f));
+                        Vector2 boxVector = new Vector2(playerBoundingVector.x, playerBoundingVector.y);
                         float boxHeight = Math.Abs(Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y - Camera.main.WorldToScreenPoint(player.Transform.position).y) + 10f;
                         float boxWidth = boxHeight * 0.65f;
                         var playerColor = player.HealthController.IsAlive ? GetPlayerColor(player.Side) : Color.gray;
