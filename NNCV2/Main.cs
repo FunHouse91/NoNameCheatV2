@@ -15,7 +15,6 @@ namespace Nncv2
         private IEnumerable<ExfiltrationPoint> _extract;
         private IEnumerable<LootableContainer> _containers;
         private IEnumerable<LootItem> _item;
-        private Camera cam = Camera.main;
 
         private float _playNextUpdateTime;
         private float _extNextUpdateTime;
@@ -309,37 +308,38 @@ namespace Nncv2
         {
             foreach (var player in _playerInfo)
             {
-                if (player != null)
+                float distanceToObject = Vector3.Distance(Camera.main.transform.position, player.Transform.position);
+                Vector3 playerBoundingVector = Camera.main.WorldToScreenPoint(player.Transform.position);
+                if (distanceToObject <= _viewdistance && playerBoundingVector.z > 0.01)
                 {
-                    float distanceToObject = Vector3.Distance(cam.transform.position, player.Transform.position);
-                    var playerBoundingVector = cam.WorldToScreenPoint(player.Transform.position);
-                    if (distanceToObject <= _viewdistance && playerBoundingVector.z > 0)
-                    {
 
-                        var playerHeadVector = new Vector3(
-                        cam.WorldToScreenPoint(player.PlayerBones.Head.position).x,
-                        cam.WorldToScreenPoint(player.PlayerBones.Head.position).y,
-                        cam.WorldToScreenPoint(player.PlayerBones.Head.position).z);
-                        Vector2 boxVector = new Vector2(playerBoundingVector.x, playerBoundingVector.y);
-                        float boxHeight = Math.Abs(Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y - Camera.main.WorldToScreenPoint(player.Transform.position).y) + 10f;
-                        float boxWidth = boxHeight * 0.65f;
-                        var playerColor = player.HealthController.IsAlive ? GetPlayerColor(player.Side) : Color.gray;
-                        var playerName = player.IsAI ? "AI" : player.Profile.Info.Nickname;
-                        float playerHealth = player.HealthController.SummaryHealth.CurrentValue;
-                        string playerText = player.HealthController.IsAlive ? $"{playerName} [{distanceToObject}m] (DEAD)" : $"[{playerHealth}/435] {playerName} [{(int)distanceToObject}]";
-                        var playerTextVector = GUI.skin.GetStyle(playerText).CalcSize(new GUIContent(playerText));
-                        Utility.DrawBox(boxVector.x - boxWidth / 2f, Screen.height - boxVector.y, boxWidth, boxHeight, playerColor);
-                        Utility.DrawLine(new Vector2(playerHeadVector.x - 2f, Screen.height - playerHeadVector.y), new Vector2(playerHeadVector.x + 2f, Screen.height - playerHeadVector.y), Color.red);
-                        Utility.DrawLine(new Vector2(playerHeadVector.x, Screen.height - playerHeadVector.y - 2f), new Vector2(playerHeadVector.x, Screen.height - playerHeadVector.y + 2f), Color.red);
-                        GUI.Label(new Rect(playerBoundingVector.x - playerTextVector.x / 2f, (float)Screen.height - boxVector.y - 20f, 300f, 50f), playerText);
-                    }
+                    var playerHeadVector = new Vector3(
+                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).x,
+                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y,
+                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).z);
+
+                    float boxVectorX = Camera.main.WorldToScreenPoint(player.Transform.position).x;
+                    float boxVectorY = Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y + 10f;
+                    float boxHeight = Math.Abs(Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y - Camera.main.WorldToScreenPoint(player.Transform.position).y) + 10f;
+                    float boxWidth = boxHeight * 0.65f;
+                    var IsAI = player.Profile.Info.RegistrationDate <= 0;
+                    var playerColor = player.HealthController.IsAlive ? GetPlayerColor(player.Side) : Color.gray;
+
+                    Utility.DrawBox(boxVectorX - boxWidth / 2f, (float)Screen.height - boxVectorY, boxWidth, boxHeight, playerColor);
+                    Utility.DrawLine(new Vector2(playerHeadVector.x - 2f, (float)Screen.height - playerHeadVector.y), new Vector2(playerHeadVector.x + 2f, (float)Screen.height - playerHeadVector.y), playerColor);
+                    Utility.DrawLine(new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y - 2f), new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y + 2f), playerColor);
+
+                    var playerName = player.IsAI ? "AI" : player.Profile.Info.Nickname;
+                    string playerText = player.HealthController.IsAlive ? playerName : (playerName + " (Dead)");
+                    string playerTextDraw = string.Format("{0} [{1}]", playerText, (int)distanceToObject);
+                    var playerTextVector = GUI.skin.GetStyle(playerText).CalcSize(new GUIContent(playerText));
+                    GUI.Label(new Rect(playerBoundingVector.x - playerTextVector.x / 2f, (float)Screen.height - boxVectorY - 20f, 300f, 50f), playerTextDraw);
                 }
             }
-
         }
 
 
-        private Color GetPlayerColor(EPlayerSide side)
+            private Color GetPlayerColor(EPlayerSide side)
         {
             switch (side)
             {
