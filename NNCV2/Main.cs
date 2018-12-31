@@ -43,8 +43,6 @@ namespace Nncv2
         private float _viewdistance = 1200f;
         private Player _localPlayer;
         private Vector3 camPos;
-        private int _count = 0;
-        private float _valueTime = 0.0f;
         private float _localPlayerRefresh;
         #endregion
 
@@ -69,6 +67,22 @@ namespace Nncv2
         #endregion
 
 
+        private void Start()
+        {
+            Clear();
+        }
+        private void Clear()
+        {
+            _playerInfo = null;
+            _extract = null;
+            _containers = null;
+            _item = null;
+            _weaponBoxesNextUpdateTime = 0;
+            _itemsNextUpdateTime = 0;
+            _localPlayer = null;
+            _localPlayerRefresh = 0;
+            GC.Collect();
+        }
 
         public void Load()
         {
@@ -106,7 +120,7 @@ namespace Nncv2
             if (Time.time > _localPlayerRefresh)
             {
                 GetLocalPlayer();
-                _localPlayerRefresh = Time.time + 10.0f;
+                _localPlayerRefresh = Time.time + 20.0f;
             }
         }
 
