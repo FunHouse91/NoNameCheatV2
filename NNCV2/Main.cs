@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using UnityEngine;
 using EFT;
+
 namespace Nncv2
 {
     public class Main : MonoBehaviour
     {
-        public Main() { }
 
+        public Main() { }
+        #region variable
         private GameObject GameObjectHolder;
 
         private IEnumerable<Player> _playerInfo;
@@ -18,7 +21,7 @@ namespace Nncv2
 
         private float _playNextUpdateTime;
         private float _extNextUpdateTime;
-        protected float _infoUpdateInterval = 10f;
+        protected float _infoUpdateInterval = 15f;
 
 
         private bool _isInfoMenuActive;
@@ -36,13 +39,23 @@ namespace Nncv2
         private float _weaponBoxesNextUpdateTime;
         private float _itemsNextUpdateTime;
         private float _espUpdateInterval = 500f;
+        private float _itemUpdateInterval = 600f;
         private float _viewdistance = 1200f;
+        private Player _localPlayer;
+        private Vector3 camPos;
+        private int _count = 0;
+        private float _valueTime = 0.0f;
+        private float _localPlayerRefresh;
+        #endregion
 
+        #region import
 
         [DllImport("user32.dll")]
         static extern bool GetCursorPos(out POINT lpPoint);
+
         [DllImport("user32.dll")]
         static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+
         private const int MOUSEEVENTF_MOVE = 0x0001;
         public static void Move(int xDelta, int yDelta)
         {
@@ -53,6 +66,7 @@ namespace Nncv2
             public int X;
             public int Y;
         }
+        #endregion
 
 
 
@@ -62,6 +76,7 @@ namespace Nncv2
             GameObjectHolder.AddComponent<Main>();
             DontDestroyOnLoad(GameObjectHolder);
         }
+
 
         public void Unload()
         {
@@ -83,8 +98,18 @@ namespace Nncv2
             {
                 _aim = !_aim;
             }
-
+            if (Input.GetKeyDown(KeyCode.F10))
+            {
+                _localPlayer.Transform.position = new Vector3(_localPlayer.Transform.position.x + 1, _localPlayer.Transform.position.x + 1, _localPlayer.Transform.position.z);
+            }
+            camPos = Camera.main.transform.position;
+            if (Time.time > _localPlayerRefresh)
+            {
+                GetLocalPlayer();
+                _localPlayerRefresh = Time.time + 10.0f;
+            }
         }
+
 
         private void OnGUI()
         {
@@ -100,7 +125,9 @@ namespace Nncv2
             }
 
             if (_aim)
+            {
                 Aimbot();
+            }
 
             if (_pInfor)
             {
@@ -122,7 +149,7 @@ namespace Nncv2
             {
                 if (Time.time >= _weaponBoxesNextUpdateTime)
                 {
-                    _containers = UnityEngine.Object.FindObjectsOfType<LootableContainer>();
+                    _containers = FindObjectsOfType<LootableContainer>();
                     _weaponBoxesNextUpdateTime = Time.time + _espUpdateInterval;
                 }
                 DrawWeaponBoxesContainers();
@@ -134,29 +161,39 @@ namespace Nncv2
                 if (Time.time >= _itemsNextUpdateTime)
                 {
                     _item = FindObjectsOfType<LootItem>();
-                    _itemsNextUpdateTime = Time.time + _espUpdateInterval;
+                    _itemsNextUpdateTime = Time.time + _itemUpdateInterval;
                 }
                 ShowItemESP();
             }
         }
 
+        private void GetLocalPlayer()
+        {
+            foreach (Player player in FindObjectsOfType<Player>())
+            {
+                if (EPointOfView.FirstPerson == player.PointOfView && player != null)
+                {
+                    _localPlayer = player;
+                }
+            }
+        }
 
         private void Aimbot()
         {
             int aimPosX = 0;
             int aimPosY = 0;
-            foreach (var player in _playerInfo)
+            foreach (Player player in _playerInfo)
             {
-                float distanceToObject = Vector3.Distance(Camera.main.transform.position, player.Transform.position);
+                if (!player.IsVisible) continue;
+                Vector3 playerPos = player.Transform.position;
+                float distanceToObject = Vector3.Distance(camPos, player.Transform.position);
                 if (distanceToObject < 200)
                 {
                     if (player.HealthController.IsAlive && player.IsVisible && EPointOfView.FirstPerson != player.PointOfView)
                     {
 
-                        var playerHeadVector = new Vector2(
-                            Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).x,
-                            Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y);
-                        double distance = GetDistance(Screen.width / 2, Screen.height / 2, playerHeadVector.x, playerHeadVector.y);
+                        Vector2 playerHeadVector = Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position);
+                        double distance = Vector2.Distance(new Vector2(Screen.width, Screen.height)/2, playerHeadVector);
                         if (distance < _lowDist)
                         {
                             aimPosX = (int)playerHeadVector.x;
@@ -243,39 +280,32 @@ namespace Nncv2
             {
                 if (point.isActiveAndEnabled)
                 {
-                    float distanceToObject = Vector3.Distance(Camera.main.transform.position, point.transform.position);
-                    var exfilContainerBoundingVector = new Vector3(
-                        Camera.main.WorldToScreenPoint(point.transform.position).x,
-                        Camera.main.WorldToScreenPoint(point.transform.position).y,
-                        Camera.main.WorldToScreenPoint(point.transform.position).z);
+                    var exfilContainerBoundingVector = Camera.main.WorldToScreenPoint(point.transform.position);
                     if (exfilContainerBoundingVector.z > 0.01)
                     {
+                        float distanceToObject = Vector3.Distance(camPos, point.transform.position);
                         GUI.color = Color.green;
-                        int distance = (int)distanceToObject;
-                        String exfilName = point.name;
-                        string boxText = $"{exfilName} - {distance}m";
+                        string boxText = $"{point.name} - {(int)distanceToObject}m";
                         GUI.Label(new Rect(exfilContainerBoundingVector.x - 50f, (float)Screen.height - exfilContainerBoundingVector.y, 100f, 50f), boxText);
                     }
                 }
             }
         }
 
+
+
         private void DrawWeaponBoxesContainers()
         {
             foreach (var contain in _containers)
             {
-                float distance = Vector3.Distance(Camera.main.transform.position, contain.transform.position);
-                if (contain != null && distance < _ContainerDistance)
+                if(contain != null)
                 {
-                    var containBoundingVector = new Vector3(
-                        Camera.main.WorldToScreenPoint(contain.transform.position).x,
-                        Camera.main.WorldToScreenPoint(contain.transform.position).y,
-                        Camera.main.WorldToScreenPoint(contain.transform.position).z);
+                    float distance = Vector3.Distance(camPos, contain.transform.position);
+                    var containBoundingVector = Camera.main.WorldToScreenPoint(contain.transform.position);
                     if (containBoundingVector.z > 0.01)
                     {
                         GUI.color = Color.cyan;
-                        String contain_name = contain.name;
-                        string boxText = $"{contain_name} - [{distance}]m";
+                        string boxText = $"{contain.name} - [{distance}]m";
                         GUI.Label(new Rect(containBoundingVector.x - 50f, (float)Screen.height - containBoundingVector.y, 100f, 50f), boxText);
                     }
                 }
@@ -286,16 +316,13 @@ namespace Nncv2
         {
             foreach (var Item in _item)
             {
-                if (Item == null)
-                    continue;
+                if (Item == null) continue;
 
-                float distance = Vector3.Distance(Camera.main.transform.position, Item.transform.position);
-                Vector3 ItemBoundingVector = new Vector3(Camera.main.WorldToScreenPoint(Item.transform.position).x, Camera.main.WorldToScreenPoint(Item.transform.position).y, Camera.main.WorldToScreenPoint(Item.transform.position).z);
-                if (ItemBoundingVector.z > 0.01 && Item != null && (Item.name.Contains("key") || Item.name.Contains("usb") || Item.name.Contains("alkali") || Item.name.Contains("ophalmo") || Item.name.Contains("gunpowder") || Item.name.Contains("phone") || Item.name.Contains("gas") || Item.name.Contains("money") || Item.name.Contains("document") || Item.name.Contains("quest") || Item.name.Contains("spark") || Item.name.Contains("grizzly") || Item.name.Contains("sv-98") || Item.name.Contains("sv98") || Item.name.Contains("rsas") || Item.name.Contains("salewa") || Item.name.Equals("bitcoin") || Item.name.Contains("dvl") || Item.name.Contains("m4a1") || Item.name.Contains("roler") || Item.name.Contains("chain") || Item.name.Contains("wallet") || Item.name.Contains("RSASS") || Item.name.Contains("glock") || Item.name.Contains("SA-58")) && distance <= _lootItemDistance)
+                float distance = Vector3.Distance(camPos, Item.transform.position);
+                Vector3 ItemBoundingVector = Camera.main.WorldToScreenPoint(Item.transform.position);
+                if (ItemBoundingVector.z > 0.01 && distance <= _lootItemDistance && (Item.name.Contains("key") || Item.name.Contains("usb") || Item.name.Contains("alkali") || Item.name.Contains("ophalmo") || Item.name.Contains("gunpowder") || Item.name.Contains("phone") || Item.name.Contains("gas") || Item.name.Contains("money") || Item.name.Contains("document") || Item.name.Contains("quest") || Item.name.Contains("spark") || Item.name.Contains("grizzly") || Item.name.Contains("sv-98") || Item.name.Contains("sv98") || Item.name.Contains("rsas") || Item.name.Contains("salewa") || Item.name.Equals("bitcoin") || Item.name.Contains("dvl") || Item.name.Contains("m4a1") || Item.name.Contains("roler") || Item.name.Contains("chain") || Item.name.Contains("wallet") || Item.name.Contains("RSASS") || Item.name.Contains("glock") || Item.name.Contains("SA-58")))
                 {
-                    name = Item.name;
-
-                    string text = string.Format($"{Item.name} - [{distance}]m");
+                    string text = $"{Item.name} - [{distance}]m";
                     GUI.color = Color.magenta;
                     GUI.Label(new Rect(ItemBoundingVector.x - 50f, (float)Screen.height - ItemBoundingVector.y, 100f, 50f), text);
                 }
@@ -308,34 +335,30 @@ namespace Nncv2
         {
             foreach (var player in _playerInfo)
             {
-                float distanceToObject = Vector3.Distance(Camera.main.transform.position, player.Transform.position);
-                Vector3 playerBoundingVector = Camera.main.WorldToScreenPoint(player.Transform.position);
+                if (player == null || !player.IsVisible) continue;
+                Vector3 playerPos = player.Transform.position;
+                float distanceToObject = Vector3.Distance(camPos, player.Transform.position);
+                Vector3 playerBoundingVector = Camera.main.WorldToScreenPoint(playerPos);
                 if (distanceToObject <= _viewdistance && playerBoundingVector.z > 0.01)
                 {
-
-                    var playerHeadVector = new Vector3(
-                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).x,
-                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y,
-                    Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).z);
-
-                    float boxVectorX = Camera.main.WorldToScreenPoint(player.Transform.position).x;
-                    float boxVectorY = Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y + 10f;
-                    float boxHeight = Math.Abs(Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position).y - Camera.main.WorldToScreenPoint(player.Transform.position).y) + 10f;
+                    Vector3 playerHeadVector = Camera.main.WorldToScreenPoint(player.PlayerBones.Head.position);
+                    float boxVectorX = playerBoundingVector.x;
+                    float boxVectorY = playerHeadVector.y + 10f;
+                    float boxHeight = Math.Abs(playerHeadVector.y - playerBoundingVector.y) + 10f;
                     float boxWidth = boxHeight * 0.65f;
                     var IsAI = player.Profile.Info.RegistrationDate <= 0;
                     var playerColor = player.HealthController.IsAlive ? GetPlayerColor(player.Side) : Color.gray;
-
                     Utility.DrawBox(boxVectorX - boxWidth / 2f, (float)Screen.height - boxVectorY, boxWidth, boxHeight, playerColor);
                     Utility.DrawLine(new Vector2(playerHeadVector.x - 2f, (float)Screen.height - playerHeadVector.y), new Vector2(playerHeadVector.x + 2f, (float)Screen.height - playerHeadVector.y), playerColor);
                     Utility.DrawLine(new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y - 2f), new Vector2(playerHeadVector.x, (float)Screen.height - playerHeadVector.y + 2f), playerColor);
-
-                    var playerName = player.IsAI ? "AI" : player.Profile.Info.Nickname;
+                    var playerName = IsAI ? "AI" : player.Profile.Info.Nickname;
                     string playerText = player.HealthController.IsAlive ? playerName : (playerName + " (Dead)");
                     string playerTextDraw = string.Format("{0} [{1}]", playerText, (int)distanceToObject);
                     var playerTextVector = GUI.skin.GetStyle(playerText).CalcSize(new GUIContent(playerText));
                     GUI.Label(new Rect(playerBoundingVector.x - playerTextVector.x / 2f, (float)Screen.height - boxVectorY - 20f, 300f, 50f), playerTextDraw);
                 }
             }
+
         }
 
 
