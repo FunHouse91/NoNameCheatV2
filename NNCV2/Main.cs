@@ -98,6 +98,16 @@ namespace Nncv2
             Destroy(this);
         }
 
+        private void OnDisable()
+        {
+            Clear();
+        }
+        private void OnDestroy()
+        {
+            Clear();
+        }
+
+
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.End))
@@ -201,7 +211,7 @@ namespace Nncv2
                 if (!player.IsVisible) continue;
                 Vector3 playerPos = player.Transform.position;
                 float distanceToObject = Vector3.Distance(camPos, player.Transform.position);
-                if (distanceToObject < 200)
+                if (distanceToObject < 200 && player.GetComponent<Renderer>().isVisible)
                 {
                     if (player.HealthController.IsAlive && player.IsVisible && EPointOfView.FirstPerson != player.PointOfView)
                     {
